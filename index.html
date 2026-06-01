@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Farmacias Addiuva</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="estilos.css" />
+</head>
+
+<body>
+
+  <header class="topbar">
+    <div class="header-grid">
+      <div class="side-spacer"></div>
+      <div class="brand-center">
+        <img src="logo para prfacturas.png" alt="Logo" class="logo-img">
+        <h1>Farmacias Addiuva Bolivia</h1>
+      </div>
+      <div class="filter-side">
+        <button id="menuBtn" class="hamburger">☰</button>
+      </div>
+    </div>
+
+    <div id="filterPanel" class="filter-panel">
+      <div class="filters">
+        <div><label>Departamento</label><select id="depSelect">
+            <option value="">Todos</option>
+          </select></div>
+        <div><label>Localidad</label><select id="locSelect">
+            <option value="">Todas</option>
+          </select></div>
+        <div><label>Farmacia</label><select id="farmaciaSelect">
+            <option value="">Todas</option>
+          </select></div>
+        <button id="resetBtn" class="btn-small">Limpiar</button>
+      </div>
+    </div>
+    <div class="status" id="statusText">Cargando datos...</div>
+  </header>
+
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="datos.js"></script>
+  <script>
+    const isMobile = window.innerWidth < 768;
+    const map = L.map('map').setView([-17.4027, -65.4979], isMobile ? 5 : 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const markerLayer = L.layerGroup().addTo(map);
+    const logoIcon = L.icon({ iconUrl: 'Logo-Suelto.png', iconSize: [30, 30], iconAnchor: [15, 30] });
+
+    document.getElementById('menuBtn').addEventListener('click', () => {
+      document.getElementById('filterPanel').classList.toggle('active');
+    });
+
+    const farmaciaSelect = document.getElementById('farmaciaSelect'), depSelect = document.getElementById('depSelect'), locSelect = document.getElementById('locSelect');
+    [...new Set(farmacias.map(f => f.departamento))].sort().forEach(d => depSelect.innerHTML += `<option value="${d}">${d}</option>`);
+
+    function updateFilters() {
+      const filtered = farmacias.filter(f =>
+        (!farmaciaSelect.value || f.farmacia === farmaciaSelect.value) &&
+        (!depSelect.value || f.departamento === depSelect.value) &&
+        (!locSelect.value || f.localidad === locSelect.value)
+      );
+      renderMarkers(filtered);
+    }
+
+    function renderMarkers(items) {
+      markerLayer.clearLayers();
+      items.forEach(f => {
+        if (f.lat && f.lng) L.marker([f.lat, f.lng], { icon: logoIcon }).addTo(markerLayer).bindPopup(`<b>${f.farmacia}</b><br>${f.direccion}`);
+      });
+      document.getElementById('statusText').textContent = `${items.length} farmacias mostradas`;
+    }
+
+    depSelect.addEventListener('change', () => {
+      locSelect.innerHTML = '<option value="">Todas</option>';
+      [...new Set(farmacias.filter(f => f.departamento === depSelect.value).map(f => f.localidad))].sort().forEach(l => locSelect.innerHTML += `<option value="${l}">${l}</option>`);
+      updateFilters();
+    });
+
+    locSelect.addEventListener('change', updateFilters);
+    farmaciaSelect.addEventListener('change', updateFilters);
+    document.getElementById('resetBtn').addEventListener('click', () => { location.reload(); });
+
+    [...new Set(farmacias.map(f => f.farmacia))].sort().forEach(n => farmaciaSelect.innerHTML += `<option value="${n}">${n}</option>`);
+    renderMarkers(farmacias);
+  </script>
+</body>
+
+</html>
